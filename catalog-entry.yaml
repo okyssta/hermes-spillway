@@ -1,0 +1,42 @@
+name: spillway
+repo: https://github.com/okyssta/hermes-spillway
+# sha is filled in at release time with the immutable 40-character commit SHA of
+# the tagged release; the catalog installs exactly that commit.
+# sha: 0000000000000000000000000000000000000000  # pending
+description: >-
+  Lossless, addressable paging for oversized tool results. A 2 MB log or a
+  40,000-line test run is intercepted before it enters the conversation:
+  anything over a threshold is written byte-for-byte to a content-addressed page
+  under the profile's plugin-data, and the model gets a compact preview, a page
+  handle and instructions instead of the whole thing. Five tools let it grep the
+  page for the error, read an exact 1-based inclusive line range with the
+  tool's own line numbers, list what is paged, report how much context was
+  avoided, and delete pages for good — spill_forget unlinks the files, not just
+  the index rows. No model call, no compression, nothing dropped; the only
+  lossy path is max_page_chars, which marks its truncation inside the file.
+  Fail-open: a broken store or unwritable data directory leaves the original
+  result untouched. Ships a bundled skill that teaches the agent to grep before
+  reading and never re-run the tool. Disclosure — writes full tool-result text
+  and a SQLite metadata index under <hermes home>/plugin-data/spillway/; reads
+  no other files, never touches credentials or .env; makes no network calls, no
+  telemetry and no model calls; registers one hook (transform_tool_result) and
+  five tools and does not patch core; the replacement string is hard-capped at
+  4,000 chars by default so paging cannot refill the context.
+maintainer: okyssta
+tier: community
+category: tools
+requires_hermes: ">=0.22.0"
+version: "1.0.0"
+docs_url: https://github.com/okyssta/hermes-spillway#readme
+platforms: []
+capabilities:
+  provides_tools:
+    - spill_read
+    - spill_grep
+    - spill_list
+    - spill_stats
+    - spill_forget
+  provides_hooks:
+    - transform_tool_result
+  provides_middleware: []
+  requires_env: []

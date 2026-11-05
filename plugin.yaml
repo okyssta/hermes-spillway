@@ -1,0 +1,92 @@
+name: spillway
+label: Spillway
+version: 1.0.0
+manifest_version: 2
+api_version: 1
+license: MIT
+homepage: https://github.com/okyssta/hermes-spillway
+author: kyssta
+requires_hermes: ">=0.22.0"
+description: >
+  Hermes truncates a 2 MB build log and loses the middle, or the context window
+  fills and compaction loses the rest. Spillway intercepts every tool result
+  before it enters the conversation: anything over a threshold is written
+  byte-for-byte to a content-addressed page under the profile's plugin-data,
+  and the model gets a compact preview, a page handle and instructions instead
+  of the whole thing. It can then grep the page for the error, read an exact
+  line range with the original line numbers, list what is paged, or delete a
+  page for good — without re-running the tool. This is paging, not
+  summarisation: no model call, no compression, nothing dropped. Fail-open by
+  construction; SQLite indexes metadata only, the page bytes are plain UTF-8
+  files, and forget really unlinks them. Adds five tools and a bundled skill.
+  Disclosure — stores full tool-result text under
+  <hermes home>/plugin-data/spillway/pages/ and metadata in index.db in the same
+  directory; reads nothing else and never reads credentials or .env; makes no
+  network calls, no telemetry and no model calls; pages persist until
+  retention_days removes them or spill_forget deletes the files. Results larger
+  than max_page_chars are stored truncated with an explicit marker rather than
+  silently, and the replacement text never exceeds max_result_chars.
+tags: [context, tools, paging, lossless, grep, local, sqlite, privacy]
+
+provides_tools:
+  - spill_read
+  - spill_grep
+  - spill_list
+  - spill_stats
+  - spill_forget
+
+provides_hooks:
+  - transform_tool_result
+
+config_schema:
+  enabled:
+    type: bool
+    default: true
+    label: Enabled
+    description: Page oversized tool results at all (off leaves every result untouched)
+  min_chars:
+    type: int
+    default: 20000
+    label: Spill threshold (chars)
+    description: >
+      Results at or above this many characters become a page. Shorter results,
+      including ordinary error messages, are left exactly as they are (200-100000000)
+  max_page_chars:
+    type: int
+    default: 8388608
+    label: Maximum page size (chars)
+    description: >
+      Results larger than this are stored truncated to their first max_page_chars
+      characters, ending in an explicit truncation marker. Never silent
+      (1000-536870912)
+  preview_head:
+    type: int
+    default: 1200
+    label: Preview — head (chars)
+    description: How many leading characters of the real result the replacement shows (0-60000)
+  preview_tail:
+    type: int
+    default: 800
+    label: Preview — tail (chars)
+    description: How many trailing characters the replacement shows, for the summary at the end (0-60000)
+  max_result_chars:
+    type: int
+    default: 4000
+    label: Replacement budget (chars)
+    description: >
+      Hard cap on the replacement string itself, so one huge result can never
+      refill the context it was meant to save (400-60000)
+  retention_days:
+    type: int
+    default: 0
+    label: Retention (days)
+    description: >
+      Delete pages older than this on every write. 0 keeps them until forgotten.
+      The page just written is never collected
+  ignore_tools:
+    type: list
+    default: []
+    label: Tools to never page
+    description: >
+      Tool names whose results are always left alone (in addition to spillway's
+      own five tools, which are never paged)
