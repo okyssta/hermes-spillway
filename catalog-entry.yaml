@@ -2,7 +2,7 @@ name: spillway
 repo: https://github.com/okyssta/hermes-spillway
 # sha is filled in at release time with the immutable 40-character commit SHA of
 # the tagged release; the catalog installs exactly that commit.
-# sha: 0000000000000000000000000000000000000000  # pending
+sha: ee39b1cf400e9e880fefbd4220aa1592d37575c0
 description: >-
   Lossless, addressable paging for oversized tool results. A 2 MB log or a
   40,000-line test run is intercepted before it enters the conversation:
